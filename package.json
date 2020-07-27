@@ -1,0 +1,31 @@
+{
+  "name": "vikus-wordpress-interface",
+  "version": "1.0.0",
+  "description": "vikus wordpress integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/technologiestiftung/vikus-wordpress-interface.git"
+  },
+  "author": "Sebastian Meier @seb_meier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/technologiestiftung/vikus-wordpress-interface/issues"
+  },
+  "homepage": "https://github.com/technologiestiftung/vikus-wordpress-interface#readme",
+  "dependencies": {
+    "@mapbox/shelf-pack": "^3.2.0",
+    "d3-dsv": "^1.2.0",
+    "download-file": "^0.1.5",
+    "ftp": "^0.3.10",
+    "glob": "^7.1.6",
+    "http": "0.0.1-security",
+    "mysql": "^2.18.1",
+    "sharp": "^0.25.2",
+    "sharpsheet": "^0.0.3",
+    "yargs": "^15.1.0"
+  }
+}

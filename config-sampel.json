@@ -1,0 +1,19 @@
+{
+  "mysql": {
+    "server": "localhost",
+    "port": 1234,
+    "user": "",
+    "password": "",
+    "db": {
+      "name": "",
+      "prefix": ""
+    }
+  },
+  "ftp": {
+    "server": "",
+    "port": 1234,
+    "user": "",
+    "password": "",
+    "folder": ""
+  }
+}

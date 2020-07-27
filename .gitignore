@@ -102,3 +102,9 @@ dist
 
 # TernJS port file
 .tern-port
+
+# CUSTOM REPO RULES
+config.json
+temp
+temp/*
+.DS_Store
