@@ -208,7 +208,7 @@ const prepareCSV = (rows, keys) => {
       } else if (typeof row[key] === "object") {
         newRow[key] = `${row[key].join(",")}`;
       } else {
-        newRow[key] = row[key];
+        newRow[key] = row[key].replace("http://kioer.webhosting.hostingparadise.de/", "https://www.kunst-im-oeffentlichen-raum-pankow.de/");
       }
     });
     newRows.push(newRow);
@@ -240,6 +240,9 @@ const transformCsv = (rows) => {
     const newRow = {};
     config.mysql.transformation.forEach((trans) => {
       newRow[trans[0]] = row[trans[1]];
+      if (trans.length > 2 && (newRow[trans[0]] === null || newRow[trans[0]].toString().length === 0)) {
+        newRow[trans[0]] = trans[2];
+      }
     });
 
     const tYear = row[config.mysql.year.column].match(/\d{4}/);
@@ -258,16 +261,18 @@ const transformCsv = (rows) => {
     });
     newRow["keywords"] = taxonomy.join(",");
 
+    newRow["_Bild"] = row[config.mysql.primary] + ".jpg";
+
     data.push(newRow);
   });
 
-  writeCSV(data, [...config.mysql.transformation.map((values) => values[0]), "year", "keywords"], tmpPath + "/data.csv");
+  writeCSV(data, [...config.mysql.transformation.map((values) => values[0]), "year", "keywords", "_Bild"], tmpPath + "/data.csv");
 };
 
 const downloadImages = async (csv) => {
   for (let i = 0; i < csv.length; i += 1) {
     const extension = csv[i].mein_kw_bilder.split(".");
-    let url = csv[i].mein_kw_bilder.replace("http://kioer.webhosting.hostingparadise.de/", "https://www.kunst-im-oeffentlichen-raum-pankow.de/").split("'").join("");
+    let url = csv[i].mein_kw_bilder.split("'").join("");
     const urlSplit = url.split("/");
     const urlFile = urlSplit[urlSplit.length - 1].split(".")[0];
     url = url.replace(urlFile, encodeURIComponent(urlFile));
@@ -320,6 +325,27 @@ const transformImages = (rows) => {
 /*----- FTP Upload -----*/
 
 const uploadImages = (rows) => {
+  // START TEMPORARY FIX of spritesheet.json
+  const spritesheet = JSON.parse(fs.readFileSync("./data/sprites/spritesheet.json", "utf8"));
+  spritesheet.meta = {
+    "app": "https://github.com/gamevy/pixi-packer",
+    "type": "pixi-packer",
+    "version": "1"
+  };
+  spritesheet.id = "web_web_full";
+  spritesheet.loadingStage = "web";
+  spritesheet.variation = "web";
+  spritesheet.resolution = 1;
+  spritesheet.scaleName = "full";
+
+  spritesheet.spritesheets.forEach((sprite, si) => {
+    const stats = fs.statSync("./data/sprites/" + sprite.image);
+    spritesheet.spritesheets[si].filesize = stats["size"];
+  });
+
+  fs.writeFileSync("./data/sprites/spritesheet_v1.json", JSON.stringify(spritesheet), "utf8");
+  // END TEMPORARY FIX of spritesheet.json
+
   const uploads = [["./temp/data.csv", "data/data.csv"]];
   const folders = ["1024", "4096", "sprites"];
 

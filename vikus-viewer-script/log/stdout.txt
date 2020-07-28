@@ -1228,8 +1228,8 @@ composing spritesheet 0
 composing spritesheet 1
 composing spritesheet 2
 composing spritesheet 3
-composing sprites 0
+composing sprites 300
 composing sprites 200
 composing sprites 100
-composing sprites 300
+composing sprites 0
 done
