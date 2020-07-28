@@ -108,3 +108,4 @@ config.json
 temp
 temp/*
 .DS_Store
+data

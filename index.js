@@ -5,7 +5,16 @@ const fs = require("fs");
 const d3DSV = require("d3-dsv");
 const parser = d3DSV.dsvFormat(",");
 const downloadFile = require('download-file');
-const child_process = require("child_process");
+const shell = require("shelljs");
+
+const terminalUpdate = (msg) => {
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write(msg);
+};
+
+process.stdout.write("\n");
+process.stdout.write("💬 Setup");
 
 const tmpPath = "./" + config.temp;
 if (!fs.existsSync(tmpPath)) {
@@ -18,6 +27,8 @@ if (!fs.existsSync(dwnldPath)) {
 }
 
 /*----- MySQL to CSV -----*/
+
+terminalUpdate("💬 Wordpress MySQL Call");
 
 const mysqlConnection = mysql.createConnection({
   host : config.mysql.server,
@@ -58,6 +69,7 @@ AND main.post_type = "kioer_kw"
 // Process results and create a unified array
 
 const processSQL = (results) => {
+  terminalUpdate("💬 Processing data");
   const tempCSV = [];
   const tempKeys = ["id", "post_title", "post_modified", "guid", "post_name"];
  
@@ -127,26 +139,129 @@ const processSQL = (results) => {
 };
 
 const updateCSV = (rows, keys) => {
+  let oldCsv = [];
+  if (fs.existsSync(tmpPath + "/temp.csv")) {
+    const rawCsv = fs.readFileSync(tmpPath + "/temp.csv", "utf8");
+    oldCsv = parser.parse(rawCsv);
+  }
+
+  let newCsv = [];
+
+  preparedRows = prepareCSV(rows, keys);
+
+  // Check which rows are new / deleted / modified > ignore others
+  preparedRows.forEach((row) => {
+    let isModified = true;
+    oldCsv.forEach((oRow) => {
+      if (row[config.mysql.primary].toString() === oRow[config.mysql.primary].toString()) {
+        isModified = false;
+        keys.forEach((key) => {
+          if (key in row && key in oRow && (oRow[key] !== null || row[key] !== null)) {
+            if ((row[key] === null && oRow[key] !== null) || (row[key] !== null && oRow[key] === null)) {
+              isModified = true;
+            } else if (row[key].toString() !== oRow[key].toString()) {
+              isModified = true;
+            }
+          }
+        });
+      }
+    });
+    if (isModified) {
+      newCsv.push(row);
+    }
+  });
+
+  writeCSV(preparedRows, keys, tmpPath + "/temp.csv");
+
+  if (newCsv.length === 0 && process.argv[2] !== "force") {
+    process.stdout.write("\n");
+    process.stdout.write("‼ Looks like nothing changed, if you wish to still run an update, please use 'npm run force'");
+  } else {
+    if (process.argv[2] === "force") {
+      newCsv = preparedRows;
+    }
+
+    transformCsv(preparedRows);
+
+    terminalUpdate("🐓 Wordpress to CSV complete");
+    process.stdout.write("\n");
+    process.stdout.write("💬 downloading images");
+
+    downloadImages(newCsv);
+  }
+};
+
+const escapeQuote = (text) => {
+  return text.split(`"`).join(`""`);
+};
+
+const prepareCSV = (rows, keys) => {
+  terminalUpdate("💬 Consolidating data");
+  const newRows = [];
+  rows.forEach((row) => {
+    const newRow = {};
+    keys.forEach((key) => {
+      if (!(key in row) || row[key] === null) {
+        newRow[key] = "";
+      } else if (typeof row[key] === "number") {
+        newRow[key] = row[key];
+      } else if (typeof row[key] === "object") {
+        newRow[key] = `${row[key].join(",")}`;
+      } else {
+        newRow[key] = row[key];
+      }
+    });
+    newRows.push(newRow);
+  });
+  return newRows;
+};
+
+const writeCSV = (rows, keys, target) => {
+  terminalUpdate("💬 Consolidating data");
   let csv = keys.join(",");
   rows.forEach((row) => {
     const line = [];
     keys.forEach((key) => {
-      if (!(key in row) || row[key] === null) {
-        line.push("");
-      } else if (typeof row[key] === "number") {
-        line.push(row[key]);
-      } else if (typeof row[key] === "object") {
-        line.push(`"${row[key].join(",")}"`);
-      } else if (row[key].indexOf(",") > -1) {
-        line.push(`"${row[key]}"`);
+      if (row[key].toString().indexOf(",") > -1 || row[key].toString().indexOf(`"`) > -1) {
+        line.push(`"${escapeQuote(row[key])}"`);
       } else {
         line.push(row[key]);
       }
     });
     csv += "\n" + line.join(",");
   });
-  fs.writeFileSync(tmpPath + "/temp.csv", csv, "utf8");
-  downloadImages(rows);
+  fs.writeFileSync(target, csv, "utf8");
+};
+
+const transformCsv = (rows) => {
+  const data = [];
+
+  rows.forEach((row) => {
+    const newRow = {};
+    config.mysql.transformation.forEach((trans) => {
+      newRow[trans[0]] = row[trans[1]];
+    });
+
+    const tYear = row[config.mysql.year.column].match(/\d{4}/);
+    if (tYear === null) {
+      newRow["year"] = config.mysql.year.na;
+    } else {
+      newRow["year"] = parseInt(tYear[0]);
+    }
+
+    let taxonomy = [];
+    config.mysql.taxonomies.forEach((tax) => {
+      const values = row[tax[0]].split(",");
+      values.forEach((value) => {
+        taxonomy.push(`${tax[1]}:${value}`);
+      });
+    });
+    newRow["keywords"] = taxonomy.join(",");
+
+    data.push(newRow);
+  });
+
+  writeCSV(data, [...config.mysql.transformation.map((values) => values[0]), "year", "keywords"], tmpPath + "/data.csv");
 };
 
 const downloadImages = async (csv) => {
@@ -164,9 +279,14 @@ const downloadImages = async (csv) => {
     };
  
     const result = await download(options, url);
-    console.log(result, url);
+    terminalUpdate(`💬 downloading images ${csv.length} / ${(i + 1)}`);
   }
-  // transformImages(rows);
+
+  terminalUpdate("🐈 Image download complete");
+  process.stdout.write("\n");
+  process.stdout.write("💬 transforming images");
+
+  transformImages(csv);
 };
 
 const download = (options, url) => {
@@ -181,11 +301,16 @@ const download = (options, url) => {
 };
 
 const transformImages = (rows) => {
-  const s = fs.openSync(tmpPath + "/vikus-viewer-script.log", 'w');
-  const p = child_process.spawn('node ./vikus-viewer-script/bin/textures.js', [dwnldPath], {stdio: [process.stdin, s, process.stderr]});
-  p.on('close', (code) => {
-    fs.closeSync(s);
-  });
+  const { stdout, stderr, code } = shell.exec(`node ./vikus-viewer-script/bin/textures.js "${dwnldPath}/*.jpg"`, { silent: true });
+  fs.writeFileSync("./vikus-viewer-script/log/stdout.txt", stdout, "utf8");
+  fs.writeFileSync("./vikus-viewer-script/log/stderr.txt", stderr, "utf8");
+  fs.writeFileSync("./vikus-viewer-script/log/code.txt", code, "utf8");
+
+  terminalUpdate("🐕 Images transformation complete");
+  process.stdout.write("\n");
+  process.stdout.write("💬 uploading images");
+
+  uploadImages(rows);
 };
 
 // https://www.kunst-im-oeffentlichen-raum-pankow.de/kioer_kw/${post_name}
@@ -194,32 +319,58 @@ const transformImages = (rows) => {
 
 /*----- FTP Upload -----*/
 
-// const uploads = [];
-// let uploadIndex = 0;
+const uploadImages = (rows) => {
+  const uploads = [["./temp/data.csv", "data/data.csv"]];
+  const folders = ["1024", "4096", "sprites"];
 
-// const ftpClient = new FTPClient();
+  folders.forEach((folder, fi) => {
+    fs.readdirSync(`./data/${folder}/`).forEach(file => {
+      if (file.indexOf(".jpg") > -1 || file.indexOf(".json") > -1) {
+        let doUpload = true;
+        if (fi < 2) {
+          doUpload = false;
+          rows.forEach((row) => {
+            if (row[config.mysql.primary].toString() === file.split(".jpg")[0].toString()) {
+              doUpload = true;
+            }
+          });
+        }
+        if (doUpload) {
+          uploads.push([`./data/${folder}/${file}`, `temp/${folder}/${file}`]);
+        }
+      }
+    });
+  });
 
-// ftpClient.on('ready', () => {
-//   upload();
-// });
+  let uploadIndex = 0;
 
-// ftpClient.connect({
-//   host: config.ftp.server,
-//   port: config.ftp.port,
-//   secure: config.ftp.secure,
-//   user: config.ftp.user,
-//   password: config.ftp.password
-// });
+  const ftpClient = new FTPClient();
 
-// const upload = () => {
-//   if (uploadIndex < uploads.length - 1) {
-//     ftpClient.put(`./temp/${uploads[uploadIndex]}`, `${config.ftp.folder}/${uploads[uploadIndex]}`, (err) => {
-//       if (err) throw err;
-//       uploadIndex += 1;
-//       upload();
-//     });
-//   } else {
-//     ftpClient.end();
-//     // NEXT
-//   }
-// };
+  ftpClient.on('ready', () => {
+    upload();
+  });
+
+  ftpClient.connect({
+    host: config.ftp.server,
+    port: config.ftp.port,
+    secure: config.ftp.secure,
+    user: config.ftp.user,
+    password: config.ftp.password
+  });
+
+  const upload = () => {
+    if (uploadIndex <= uploads.length - 1) {
+      ftpClient.put(`${uploads[uploadIndex][0]}`, `${config.ftp.folder}${uploads[uploadIndex][1]}`, (err) => {
+        if (err) throw err;
+        uploadIndex += 1;
+        terminalUpdate(`💬 uploading images ${uploads.length} / ${(uploadIndex + 1)}`);
+        upload();
+      });
+    } else {
+      ftpClient.end();
+      terminalUpdate("🦓 Upload Complete");
+      process.stdout.write("\n");
+      process.exit();
+    }
+  };
+};

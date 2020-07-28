@@ -4,7 +4,9 @@
   "description": "vikus wordpress integration",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "update": "node index.js",
+    "force": "node index.js force",
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +28,7 @@
     "mysql": "^2.18.1",
     "sharp": "^0.25.2",
     "sharpsheet": "^0.0.3",
+    "shelljs": "^0.8.4",
     "yargs": "^15.1.0"
   }
 }

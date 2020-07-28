@@ -7,6 +7,23 @@
     "db": {
       "name": "",
       "prefix": ""
+    },
+    "post_meta": [
+      "META_KEYS"
+    ],
+    "acf_parse":[
+      "KEYS_WITH_SPECIAL_ACF_SYNTAX"
+    ],
+    "transformation":[
+      ["data.csv-KEY", "KEY_FROM_ABOVE"]
+    ],
+    "taxonomies": [
+      ["TAXONOMY_KEY", "TITLE_OF_TAXONOMY_FOR_GUI"]
+    ],
+    "primary": "id",
+    "year": {
+      "column":"META_KEY_WITH_YEAR",
+      "na": "k.A."
     }
   },
   "ftp": {
@@ -14,6 +31,8 @@
     "port": 1234,
     "user": "",
     "password": "",
-    "folder": ""
-  }
+    "folder": "",
+    "secure": false
+  },
+  "temp": "temp"
 }
