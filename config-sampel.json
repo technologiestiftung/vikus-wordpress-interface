@@ -8,6 +8,7 @@
       "name": "",
       "prefix": ""
     },
+    "custom_type": "VIKUS_ASSET_TYPE",
     "post_meta": [
       "META_KEYS"
     ],

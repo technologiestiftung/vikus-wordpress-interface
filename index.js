@@ -57,7 +57,7 @@ FROM
   ${config.mysql.db.prefix}_posts AS main
 WHERE 
 main.post_status = "publish" 
-AND main.post_type = "kioer_kw"
+AND main.post_type = "${config.mysql.custom_type}"
 `, (error, results) => {
 
   if (error) throw error;
@@ -306,7 +306,7 @@ const transformImages = (rows) => {
   fs.writeFileSync("./vikus-viewer-script/log/stderr.txt", stderr, "utf8");
   fs.writeFileSync("./vikus-viewer-script/log/code.txt", code, "utf8");
 
-  terminalUpdate("🐕 Images transformation complete");
+  terminalUpdate("🐕 Image transformation complete");
   process.stdout.write("\n");
   process.stdout.write("💬 uploading images");
 
