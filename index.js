@@ -6,6 +6,7 @@ const d3DSV = require("d3-dsv");
 const parser = d3DSV.dsvFormat(",");
 const downloadFile = require('download-file');
 const shell = require("shelljs");
+const textures = require('vikus-viewer-script/src/textures');
 
 const terminalUpdate = (msg) => {
   process.stdout.clearLine();
@@ -291,7 +292,7 @@ const downloadImages = async (csv) => {
   process.stdout.write("\n");
   process.stdout.write("💬 transforming images");
 
-  transformImages(csv);
+  await transformImages(csv);
 };
 
 const download = (options, url) => {
@@ -305,11 +306,8 @@ const download = (options, url) => {
   });
 };
 
-const transformImages = (rows) => {
-  const { stdout, stderr, code } = shell.exec(`node ./vikus-viewer-script/bin/textures.js "${dwnldPath}/*.jpg"`, { silent: true });
-  fs.writeFileSync("./vikus-viewer-script/log/stdout.txt", stdout, "utf8");
-  fs.writeFileSync("./vikus-viewer-script/log/stderr.txt", stderr, "utf8");
-  fs.writeFileSync("./vikus-viewer-script/log/code.txt", code, "utf8");
+const transformImages = async (rows) => {
+  await textures.run(`${dwnldPath}/*.jpg`);
 
   terminalUpdate("🐕 Image transformation complete");
   process.stdout.write("\n");
