@@ -111,7 +111,7 @@ The script was build to be run locally, but obviously you could also run it on a
 
 **English version see above**
 
-## Overview
+## Übersicht
 Der [VIKUS Viewer](https://vikusviewer.fh-potsdam.de/) ist ein Open Source Werkzeug um große Bildsammlungen zu präsentieren (Videos und Audio können auch eingebettet werden). Damit das web-basierte Werkzeug flüssig läuft, müssen die Medien vorher optimiert werden. Dies kann mit den [VIKUS Viewer Scripts](https://github.com/cpietsch/vikus-viewer-script) durchgeführt werden. Dieses Repository hier, enthält ein zusätzliches Script, welches einem erlaubt Daten und Medien zu importieren, welche durch eine Wordpress-Instanz mit [Advanced Custom Fields (ACF)](https://www.advancedcustomfields.com/) verwaltet werden.
 
 ### Prozess
