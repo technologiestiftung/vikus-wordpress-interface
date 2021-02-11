@@ -29,6 +29,7 @@
     "sharp": "^0.25.2",
     "sharpsheet": "^0.0.3",
     "shelljs": "^0.8.4",
-    "yargs": "^15.1.0"
+    "yargs": "^15.1.0",
+    "vikus-viewer-script": "^2.0.1"
   }
 }
